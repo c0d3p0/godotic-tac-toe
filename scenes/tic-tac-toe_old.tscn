@@ -1,0 +1,503 @@
+[gd_scene load_steps=6 format=2]
+
+[ext_resource path="res://gui/game_theme.tres" type="Theme" id=1]
+[ext_resource path="res://gui/TovariSans.otf" type="DynamicFontData" id=2]
+
+[sub_resource type="StreamTexture" id=1]
+flags = 4
+load_path = "res://.import/tic-tac-toe-bg.png-3de50c7076925cae5e36476be54a9481.stex"
+
+[sub_resource type="DynamicFont" id=2]
+size = 30
+font_data = ExtResource( 2 )
+
+[sub_resource type="CSharpScript" id=3]
+script/source = "using System;
+
+using Godot;
+using Godot.Collections;
+
+
+public class ComputerAI
+{	
+	public Block GetComputerPlay(Block opponentMoveBlock)
+	{
+        goodMoveArray.Clear();
+        normalMoveArray.Clear();
+
+		if(gameData.MoveAmount < 2)
+		{
+			PlanBasicMove(opponentMoveBlock); 
+			int move = random.RandiRange(0, goodMoveArray.Count);
+			lastMove = goodMoveArray[move];
+		}
+		else
+		{
+            FillPossibleMoveArray();
+            FillDesiredMoveArray(opponentMoveBlock);
+
+			if(desiredMoveArray.Count > 0 && MustDoAnAdvancedMove()) 
+                lastMove = desiredMoveArray[random.RandiRange(0, desiredMoveArray.Count)];
+			else
+                lastMove = possibleMoveArray[random.RandiRange(0, possibleMoveArray.Count)];
+		}
+
+		return lastMove;
+	}
+
+    private void PlanAdvancedMove(Block moveBlock, Block startBlock,
+            Block incrementBlock, char playerMark)
+    {
+		auxBlockArray.Clear();		
+		sbyte rowIndex;
+        sbyte columnIndex;
+		Block block;
+
+        for(sbyte i = 0; i < 3; i++)
+        {
+            rowIndex = (sbyte) (startBlock.row + (i * incrementBlock.row));
+            columnIndex = (sbyte) (startBlock.column + (i * incrementBlock.column));
+			block = new Block(rowIndex, columnIndex);
+
+			if(!moveBlock.Equals(block))
+				auxBlockArray.Add(block);
+		}
+		
+		if(gameData.IsBlockValue(auxBlockArray[0], playerMark) &&
+				gameData.IsBlockValue(auxBlockArray[1], Char.MinValue))
+		{
+			goodMoveArray.Add(auxBlockArray[1]);
+		}
+		else if(gameData.IsBlockValue(auxBlockArray[1], playerMark) &&
+				gameData.IsBlockValue(auxBlockArray[0], Char.MinValue))
+		{
+			goodMoveArray.Add(auxBlockArray[0]);
+		}
+		else
+		{
+			if(gameData.IsBlockValue(auxBlockArray[0], Char.MinValue))
+				normalMoveArray.Add(auxBlockArray[0]);
+			
+			if(gameData.IsBlockValue(auxBlockArray[1], Char.MinValue))
+				normalMoveArray.Add(auxBlockArray[1]);
+		}
+    }
+
+	private void PlanBasicMove(Block opponentMoveBlock)
+	{
+		if(opponentMoveBlock.IsInCenter()) // If player played in the middle block
+		{
+			goodMoveArray.Add(new Block(0, 0)); // Add as good move all diagonals blocks
+            goodMoveArray.Add(new Block(0, 2));
+            goodMoveArray.Add(new Block(2, 0));
+            goodMoveArray.Add(new Block(2, 2));
+		}
+		else
+			goodMoveArray.Add(new Block(1, 1));; // Add as good move the middle block
+	}
+
+    private void FillPossibleMoveArray()
+    {
+        possibleMoveArray.Clear();
+        Block block = new Block(0, 0);
+
+        for(sbyte i = 0; i < 3; i++)
+        {
+            for(sbyte j = 0; j < 3; j++)
+            {
+                block.Set(i, j);
+
+                if(gameData.IsBlockValue(block, Char.MinValue))
+                    possibleMoveArray.Add(block);
+            }
+        }
+    }
+
+	private void PlanAdvancedOffensiveMove()
+	{
+		PlanAdvancedMove(lastMove, new Block(lastMove.row, 0), new Block(0, 1),
+				gameConfig.ComputerMark); // Advanced moves diagonal top left
+		PlanAdvancedMove(lastMove, new Block(0, lastMove.column), new Block(1, 0),
+				gameConfig.ComputerMark); // Advanced moves diagonal top left
+
+		if(lastMove.IsInDiagonalTopLeft()) // Advanced moves diagonal top left
+		{
+			PlanAdvancedMove(lastMove, new Block(0, 0), new Block(1, 1),
+				gameConfig.ComputerMark);
+		}
+
+		if(lastMove.IsInDiagonalTopRight()) // Advanced moves diagonal top right.
+		{
+			PlanAdvancedMove(lastMove, new Block(0, 2), new Block(1, -1),
+				gameConfig.ComputerMark);
+		}
+	}
+
+	private void PlanAdvancedDefensiveMove(Block playerMoveBlock)
+	{
+		PlanAdvancedMove(playerMoveBlock, new Block(lastMove.row, 0), new Block(0, 1),
+				gameConfig.PlayerMark); // Advanced moves diagonal top left
+		PlanAdvancedMove(playerMoveBlock, new Block(0, lastMove.column), new Block(1, 0),
+				gameConfig.ComputerMark); // Advanced moves diagonal top left
+
+		if(lastMove.IsInDiagonalTopLeft()) // Advanced moves diagonal top left
+		{
+			PlanAdvancedMove(playerMoveBlock, new Block(0, 0), new Block(1, 1),
+				gameConfig.PlayerMark);
+		}
+
+		if(lastMove.IsInDiagonalTopRight()) // Advanced moves diagonal top right.
+		{
+			PlanAdvancedMove(playerMoveBlock, new Block(0, 2), new Block(1, -1),
+				gameConfig.PlayerMark);
+		}
+	}
+
+    private void FillDesiredMoveArray(Block playerMoveBlock)
+    {	
+		PlanAdvancedOffensiveMove();
+
+        if(goodMoveArray.Count < 1) // If there is no offensive moves to do.
+			PlanAdvancedDefensiveMove(playerMoveBlock);
+
+        if(goodMoveArray.Count > 0) // If there is defensive moves to do.
+            desiredMoveArray = goodMoveArray;
+
+        desiredMoveArray = normalMoveArray; // A normal move is a good move.
+    }
+
+    private bool MustDoAnAdvancedMove()
+    {
+        int max = possibleMoveArray.Count * aiLevel;
+        return random.RandiRange(1, max) >= possibleMoveArray.Count;
+    }
+
+    public void UpdateAILevel()
+    {
+        aiLevel = Convert.ToByte(Math.Pow(2, gameConfig.GameLevel));
+    }
+    
+    public void InitializeAttributes(GameConfig gameConfig, GameData gameData)
+    {
+        goodMoveArray = new Array<Block>();
+		normalMoveArray = new Array<Block>();
+		possibleMoveArray = new Array<Block>();
+		auxBlockArray = new Array<Block>();
+        random = new RandomNumberGenerator();
+        this.gameData = gameData;
+        this.gameConfig = gameConfig;
+        lastMove = new Block(-1, -1);
+        UpdateAILevel();
+    }
+
+    public ComputerAI(GameConfig gameConfig, GameData gameData)
+    {
+        InitializeAttributes(gameConfig, gameData);
+    }
+
+
+
+	// private void planAdvancedMove(int moveValue, char playerMark)
+	// {
+	// 	int rowIndex = moveValue / 3;
+	// 	int columnIndex = moveValue % 3;
+
+	// 	// Laco que percorre todas os blocos da linha em que foi feita a jogada.
+	// 	for (int x = rowIndex * 3; x < 3 * (rowIndex + 1); x++)
+	// 	{
+	// 		// Armazena valor de um bloco da linha jogada que pode estar vazio.
+	// 		int blockLeft = (3 * (3 * rowIndex + 1)) - moveValue - x;
+
+	// 		// Analisa se o bloco que esta sendo verificado tem a tag do
+	// 		// jogador que efetuou a jogada, se o bloco verificado e o mesmo em
+	// 		// que foi efetuado a jogada, e se o possivel bloco vazio realmente
+	// 		// esta vazio.
+	// 		if (logica.getGameArray()[x].equals(playerMark)
+	// 				&& x != moveValue
+	// 				&& logica.getGameArray()[blockLeft]
+	// 						.equals(\"\"))
+	// 		{
+	// 			// Adiciona o bloco vazio na lista de bom movimento
+	// 			goodMoveArray.add(blockLeft);
+
+	// 			// Incerra o laco.
+	// 			break;
+	// 		}
+
+	// 		// Analisa se o bloco que esta sendo verificado esta vazio e se o
+	// 		// ultimo movimento da maquina e o mesmo passado como paramentro
+	// 		// nesse metodo.
+	// 		if (logica.getGameArray()[x].equals(\"\")
+	// 				&& lastMove == moveValue)
+	// 		{
+	// 			// Adiciona o bloco vazio na lista de jogadas normais.
+	// 			normalMoveArray.add(x);
+	// 		}
+	// 	}
+
+	// 	// Laco que percorre todas os blocos da coluna em que foi feita a
+	// 	// jogada.
+	// 	for (int x = columnIndex; x <= 6 + columnIndex; x += 3)
+	// 	{
+	// 		// Armazena valor de um bloco da coluna jogada que pode estar vazio.
+	// 		int blockLeft = (3 + 3 + (3 * (columnIndex + 1)))
+	// 				- moveValue - x;
+
+	// 		// Analisa se o bloco que esta sendo verificado tem a tag do
+	// 		// jogador que efetuou a jogada e se o bloco verificado e o mesmo em
+	// 		// que foi efetuado a jogada e se o possivel bloco vazio realmente
+	// 		// esta vazio.
+	// 		if (logica.getGameArray()[x].equals(playerMark)
+	// 				&& x != moveValue
+	// 				&& logica.getGameArray()[blockLeft]
+	// 						.equals(\"\"))
+	// 		{
+	// 			// Adiciona o bloco vazio na lista de bom movimento
+	// 			goodMoveArray.add(blockLeft);
+	// 			// Incerra o laco.
+	// 			break;
+	// 		}
+
+	// 		if (logica.getGameArray()[x].equals(\"\")
+	// 				&& lastMove == moveValue)
+	// 		{
+	// 			// Adiciona o bloco vazio na lista de jogadas normais.
+	// 			normalMoveArray.add(x);
+	// 		}
+	// 	}
+
+	// 	if (moveValue == 0 || moveValue == 2
+	// 			|| moveValue == 6 || moveValue == 8)
+	// 	{
+	// 		// Armazena valor de um bloco da linha diagonal da jogada que pode
+	// 		// estar vazio.
+	// 		int indexDiagonal = Math.abs(rowIndex
+	// 				- columnIndex);
+
+	// 		// Analisa se o bloco que esta sendo verificado tem a tag do
+	// 		// jogador que efetuou a jogada e se o bloco verificado e o mesmo em
+	// 		// que foi efetuado a jogada e se o possivel bloco vazio realmente
+	// 		// esta vazio.
+	// 		for (int x = indexDiagonal; x <= 8 - indexDiagonal; x += 4 - indexDiagonal)
+	// 		{
+	// 			int blockLeft = 12 - moveValue - x;
+
+	// 			if (logica.getGameArray()[x]
+	// 					.equals(playerMark)
+	// 					&& x != moveValue
+	// 					&& logica.getGameArray()[blockLeft]
+	// 							.equals(\"\"))
+	// 			{
+	// 				// Adiciona o bloco vazio na lista de bom movimento
+	// 				goodMoveArray.add(blockLeft);
+	// 				// Incerra o laco.
+	// 				break;
+	// 			}
+
+	// 			if (logica.getGameArray()[x].equals(\"\")
+	// 					&& lastMove == moveValue)
+	// 			{
+	// 				// Adiciona o bloco vazio na lista de jogadas normais.
+	// 				normalMoveArray.add(x);
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+
+    private GameData gameData;
+    private GameConfig gameConfig;
+    private byte aiLevel;
+
+	private Block lastMove;
+	private Array<Block> goodMoveArray;
+	private Array<Block> normalMoveArray;
+	private Array<Block> possibleMoveArray;
+    private Array<Block> desiredMoveArray;
+	private Array<Block> auxBlockArray;
+	private RandomNumberGenerator random;
+}
+"
+
+[node name="Control" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_right = -110.0
+margin_bottom = -200.0
+theme = ExtResource( 1 )
+
+[node name="BackGroundArea" type="Control" parent="."]
+editor/display_folded = true
+margin_right = 536.0
+margin_bottom = 402.0
+
+[node name="TextureRect" type="TextureRect" parent="BackGroundArea"]
+margin_right = 800.0
+margin_bottom = 600.0
+rect_scale = Vector2( 0.67, 0.67 )
+texture = SubResource( 1 )
+
+[node name="BlockArea" type="Control" parent="."]
+editor/display_folded = true
+margin_right = 536.0
+margin_bottom = 402.0
+
+[node name="Block11Button" type="TextureButton" parent="BlockArea"]
+margin_left = 90.0
+margin_top = 35.0
+margin_right = 210.0
+margin_bottom = 155.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block12Button" type="TextureButton" parent="BlockArea"]
+margin_left = 225.0
+margin_top = 35.0
+margin_right = 345.0
+margin_bottom = 155.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block13Button" type="TextureButton" parent="BlockArea"]
+margin_left = 355.0
+margin_top = 35.0
+margin_right = 475.0
+margin_bottom = 155.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block21Button" type="TextureButton" parent="BlockArea"]
+margin_left = 90.0
+margin_top = 152.0
+margin_right = 210.0
+margin_bottom = 272.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block22Button" type="TextureButton" parent="BlockArea"]
+margin_left = 225.0
+margin_top = 152.0
+margin_right = 345.0
+margin_bottom = 272.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block23Button" type="TextureButton" parent="BlockArea"]
+margin_left = 355.0
+margin_top = 152.0
+margin_right = 475.0
+margin_bottom = 272.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block31Button" type="TextureButton" parent="BlockArea"]
+margin_left = 90.0
+margin_top = 275.0
+margin_right = 210.0
+margin_bottom = 395.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block32Button" type="TextureButton" parent="BlockArea"]
+margin_left = 225.0
+margin_top = 275.0
+margin_right = 345.0
+margin_bottom = 395.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="Block33Button" type="TextureButton" parent="BlockArea"]
+margin_left = 355.0
+margin_top = 275.0
+margin_right = 475.0
+margin_bottom = 395.0
+rect_scale = Vector2( 0.7, 0.7 )
+
+[node name="InfoArea" type="Control" parent="."]
+margin_left = 636.0
+margin_right = 914.0
+margin_bottom = 402.0
+
+[node name="GameLevelArea" type="Control" parent="InfoArea"]
+editor/display_folded = true
+margin_right = 278.0
+margin_bottom = 40.0
+
+[node name="InfoLabel" type="Label" parent="InfoArea/GameLevelArea"]
+margin_right = 98.0
+margin_bottom = 40.0
+text = "Game Level:"
+valign = 1
+
+[node name="ValueLabel" type="Label" parent="InfoArea/GameLevelArea"]
+margin_left = 100.0
+margin_right = 140.0
+margin_bottom = 40.0
+valign = 1
+
+[node name="PlayerMarkArea" type="Control" parent="InfoArea"]
+editor/display_folded = true
+margin_top = 40.0
+margin_right = 278.0
+margin_bottom = 100.0
+
+[node name="Label" type="Label" parent="InfoArea/PlayerMarkArea"]
+margin_right = 98.0
+margin_bottom = 60.0
+text = "Player Mark:"
+valign = 1
+
+[node name="TextureRect" type="TextureRect" parent="InfoArea/PlayerMarkArea"]
+margin_left = 100.0
+margin_right = 220.0
+margin_bottom = 120.0
+rect_scale = Vector2( 0.5, 0.5 )
+
+[node name="ComputerMarkArea2" type="Control" parent="InfoArea"]
+editor/display_folded = true
+margin_top = 100.0
+margin_right = 278.0
+margin_bottom = 160.0
+
+[node name="Label" type="Label" parent="InfoArea/ComputerMarkArea2"]
+margin_right = 98.0
+margin_bottom = 60.0
+text = "CPU Mark:"
+valign = 1
+
+[node name="TextureRect" type="TextureRect" parent="InfoArea/ComputerMarkArea2"]
+margin_left = 100.0
+margin_right = 220.0
+margin_bottom = 120.0
+rect_scale = Vector2( 0.5, 0.5 )
+
+[node name="MessageArea" type="Control" parent="InfoArea"]
+editor/display_folded = true
+margin_top = 180.0
+margin_right = 278.0
+margin_bottom = 220.0
+
+[node name="Label" type="Label" parent="InfoArea/MessageArea"]
+margin_right = 8.0
+margin_bottom = 40.0
+custom_fonts/font = SubResource( 2 )
+custom_colors/font_color = Color( 0.0901961, 0.333333, 0.87451, 1 )
+text = "You won or lost"
+valign = 1
+
+[node name="ActionArea" type="Control" parent="InfoArea"]
+margin_top = 260.0
+margin_right = 278.0
+margin_bottom = 300.0
+
+[node name="Button" type="Button" parent="InfoArea/ActionArea"]
+margin_right = 12.0
+margin_bottom = 26.0
+text = "Restart"
+
+[node name="Source" type="Node" parent="."]
+
+[node name="GameGUI" type="Node" parent="Source"]
+script = SubResource( 3 )
+[connection signal="pressed" from="BlockArea/Block11Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 0, 0, 0 ]]
+[connection signal="pressed" from="BlockArea/Block12Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 1, 0, 1 ]]
+[connection signal="pressed" from="BlockArea/Block13Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 2, 0, 2 ]]
+[connection signal="pressed" from="BlockArea/Block21Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 3, 1, 0 ]]
+[connection signal="pressed" from="BlockArea/Block22Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 4, 1, 1 ]]
+[connection signal="pressed" from="BlockArea/Block23Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 5, 1, 2 ]]
+[connection signal="pressed" from="BlockArea/Block31Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 6, 2, 0 ]]
+[connection signal="pressed" from="BlockArea/Block32Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 2, 2, 1 ]]
+[connection signal="pressed" from="BlockArea/Block33Button" to="Source/GameGUI" method="OnBlockButtonPressed" binds= [ 8, 2, 2 ]]
+[connection signal="pressed" from="InfoArea/ActionArea/Button" to="Source/GameGUI" method="OnRestartButtonPressed"]

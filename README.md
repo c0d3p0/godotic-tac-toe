@@ -1,5 +1,5 @@
 # GodoTic-Tac-Toe
-A Tic-Tac-Toe game develop using the Godot Engine. C# was used as scripting language.
+A Tic-Tac-Toe game develop using the Godot Engine and C# as scripting language.
 <br/>
 
 Obs:

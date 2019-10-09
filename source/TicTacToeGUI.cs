@@ -7,19 +7,19 @@ public class TicTacToeGUI : Node
 {
     private void ResetGameInfoGUI()
     {
-        gameLevelLabel.SetText(gameConfig.GetGameLevelString());
-        whoStartsLabel.SetText(gameConfig.GetWhoStartsString());
-        playerMarkTextureRect.SetTexture(markTextureMap[gameConfig.PlayerMark]);
-        computerMarkTextureRect.SetTexture(markTextureMap[gameConfig.ComputerMark]);
-        messageLabel.SetText("");
+        gameLevelLabel.Text = gameConfig.GetGameLevelString();
+        whoStartsLabel.Text = gameConfig.GetWhoStartsString();
+        playerMarkTextureRect.Texture = markTextureMap[gameConfig.PlayerMark];
+        computerMarkTextureRect.Texture = markTextureMap[gameConfig.ComputerMark];
+        messageLabel.Text = "";
     }
 
     private void ResetGameGUI()
     {
         for(int i = 0; i < blockButtonArray.Count; i++)
         {
-            blockButtonArray[i].SetDisabled(false);
-            blockButtonArray[i].SetDisabledTexture(null);
+            blockButtonArray[i].Disabled  = false;
+            blockButtonArray[i].TextureDisabled = null;
         }
     }
 
@@ -40,8 +40,8 @@ public class TicTacToeGUI : Node
         if(index > -1 && index < blockButtonArray.Count &&
                 markTextureMap.ContainsKey(mark))
         {
-            blockButtonArray[index].SetDisabled(true);
-            blockButtonArray[index].SetDisabledTexture(markTextureMap[mark]);
+            blockButtonArray[index].Disabled = true;
+            blockButtonArray[index].TextureDisabled = markTextureMap[mark];
         }
     }
 
@@ -93,11 +93,11 @@ public class TicTacToeGUI : Node
     private void UpdateWinnerMessage()
     {
         if(gameData.Winner == 0)
-            messageLabel.SetText("You won!");
+            messageLabel.Text = "You won!";
         else if(gameData.Winner == 1)
-            messageLabel.SetText("Computer won!");
+            messageLabel.Text = "Computer won!";
         else
-            messageLabel.SetText("Draw!");
+            messageLabel.Text = "Draw!";
     }
 
     private void OnRestartButtonPressed()

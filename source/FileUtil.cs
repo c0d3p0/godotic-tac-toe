@@ -6,7 +6,7 @@ public class FileUtil
     public static void Write(String filePath, String content)
     {
         File file = new File();
-        file.Open(filePath, 3);
+        file.Open(filePath, File.ModeFlags.ReadWrite);
         file.StoreString(content);
         file.Close();
     }
@@ -17,7 +17,7 @@ public class FileUtil
         
         if(file.FileExists(filePath))
         {
-            file.Open(filePath, 3);
+            file.Open(filePath, File.ModeFlags.ReadWrite);
             String fileData = file.GetAsText();
             file.Close();
             return fileData;
@@ -35,7 +35,7 @@ public class FileUtil
     public static void CreateFile(String filePath)
     {
         File file = new File();
-        file.Open(filePath, 2);
+        file.Open(filePath, File.ModeFlags.Write);
         file.Close();
     }
 }

@@ -55,29 +55,17 @@ public class ComputerAI
 		index0 = auxBlockArray[0];
 		sbyte index1 = auxBlockArray[1];
 
-		if(gameData.IsBlockValue(gameBlocks[index0], mark) &&
-				gameData.IsBlockEmpty(gameBlocks[index1]))
-		{
+		if(IsValidGoodMove(mark, index0, index1))
 			goodMoveArray.Add(index1);
-		}
-		else if(gameData.IsBlockValue(gameBlocks[index1], mark) &&
-				gameData.IsBlockEmpty(gameBlocks[index0]))
-		{
-			goodMoveArray.Add(auxBlockArray[0]);
-		}
+		else if(IsValidGoodMove(mark, index1, index0))
+			goodMoveArray.Add(index0);
 		else
 		{
-			if(gameData.IsBlockEmpty(gameBlocks[index0]) &&
-					!normalMoveArray.Contains(index0))
-			{
+			if(IsValidNormalMove(index0))
 				normalMoveArray.Add(index0);
-			}
 			
-			if(gameData.IsBlockEmpty(gameBlocks[index1]) &&
-					!normalMoveArray.Contains(index1))
-			{
+			if(IsValidNormalMove(index1))
 				normalMoveArray.Add(index1);
-			}
 		}
     }
 
@@ -155,6 +143,18 @@ public class ComputerAI
         int max = possibleMoveArray.Count * aiLevel;
         return GetRNG(1, max) >= possibleMoveArray.Count;
     }
+
+	private bool IsValidGoodMove(sbyte mark, sbyte index0, sbyte index1)
+	{
+		return gameData.IsBlockValue(gameBlocks[index0], mark) &&
+				gameData.IsBlockEmpty(gameBlocks[index1]);
+	}
+
+	private bool IsValidNormalMove(sbyte index)
+	{
+		return gameData.IsBlockEmpty(gameBlocks[index]) &&
+				!normalMoveArray.Contains(index);
+	}
 
 	private Block GetBlock(sbyte row, sbyte column)
 	{

@@ -23,13 +23,13 @@ public class GameSettings : Node
         {
             try
             {
-                if(jsonMap.ContainsKey("gameLevel"))
+                if(jsonMap.Contains("gameLevel"))
                     gameConfig.GameLevel = Convert.ToByte(jsonMap["gameLevel"]);
             
-                if(jsonMap.ContainsKey("playerMark"))
+                if(jsonMap.Contains("playerMark"))
                     gameConfig.PlayerMark = Convert.ToSByte(jsonMap["playerMark"]);
 
-                if(jsonMap.ContainsKey("WhoStarts"))
+                if(jsonMap.Contains("WhoStarts"))
                     gameConfig.WhoStarts = Convert.ToSByte(jsonMap["WhoStarts"]);
 
                 return;

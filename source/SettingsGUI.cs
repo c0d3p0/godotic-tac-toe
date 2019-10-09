@@ -15,7 +15,7 @@ public class SettingsGUI : Node
             int checkedValue, int uncheckedValue)
     {
         CheckBox cbp = markCheckBoxes[pressedIndex];
-        markCheckBoxes[otherIndex].SetPressed(!cbp.Pressed);
+        markCheckBoxes[otherIndex].Pressed = !cbp.Pressed;
         gameConfig.PlayerMark = cbp.Pressed ? (sbyte) checkedValue :
                 (sbyte) uncheckedValue;
     }
@@ -24,7 +24,7 @@ public class SettingsGUI : Node
             int checkedValue, int uncheckedValue)
     {
         CheckBox cbp = whoStartsCheckBoxes[pressedIndex];
-        whoStartsCheckBoxes[otherIndex].SetPressed(!cbp.Pressed);
+        whoStartsCheckBoxes[otherIndex].Pressed = !cbp.Pressed;
         gameConfig.WhoStarts = cbp.Pressed ? (sbyte) checkedValue :
                 (sbyte) uncheckedValue;
     }
@@ -48,13 +48,13 @@ public class SettingsGUI : Node
 
     public void UpdateGUI()
     {
-        actualGameLevelLabel.SetText(gameConfig.GetGameLevelString());
+        actualGameLevelLabel.Text = gameConfig.GetGameLevelString();
         bool isPlayerMarkX = gameConfig.PlayerMark == 0;
         bool shouldComputerStart = gameConfig.ShouldComputerStart();
-        markCheckBoxes[0].SetPressed(isPlayerMarkX);
-        markCheckBoxes[1].SetPressed(!isPlayerMarkX);
-        whoStartsCheckBoxes[0].SetPressed(!shouldComputerStart);
-        whoStartsCheckBoxes[1].SetPressed(shouldComputerStart);
+        markCheckBoxes[0].Pressed = isPlayerMarkX;
+        markCheckBoxes[1].Pressed = !isPlayerMarkX;
+        whoStartsCheckBoxes[0].Pressed = !shouldComputerStart;
+        whoStartsCheckBoxes[1].Pressed = shouldComputerStart;
     }
 
     private void InitializeCheckBoxArray(Array<CheckBox> checkBoxArray,
